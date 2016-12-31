@@ -1,12 +1,12 @@
-module blocRecord
+module BlocRecord
   module Utility
     extend self
 
     def underscore(camel_cased_word)
       string = camel_cased_word.gsub(/::/, '/')
-      sting.gsub!(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+      string.gsub!(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
       string.gsub!(/([a-z\d])([A-Z])/, '\1_\2')
-      sting.tr!("-", "_")
+      string.tr!("-", "_")
       string.downcase
     end
 
@@ -31,7 +31,7 @@ module blocRecord
     end
 
     def reload_obj(dirty_obj)
-      persisted_obj = dirty_obj.class.find(dirty_obj.id)
+      persisted_obj = dirty_obj.class.find_one(dirty_obj.id)
       dirty_obj.instance_variables.each do |instance_variable|
         dirty_obj.instance_variable_set(instance_variable, persisted_obj.instance_variable_get(instance_variable))
       end
