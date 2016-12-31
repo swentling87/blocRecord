@@ -1,4 +1,4 @@
-module blocRecord
+module BlocRecord
   def self.connect_to(filename)
     @database_filename = filename
   end
