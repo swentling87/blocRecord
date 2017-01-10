@@ -136,10 +136,14 @@ module Selection
   end
 
   def order(*args)
-    if args.count > 1
-      order = args.join(",")
-    else
-      order = args.first.to_s
+    case args.first
+    when String
+      if args.count > 1
+        order = args.join(",")
+      end
+    when Hash
+      order_hash = BlocRecord::Utility.convert_keys(args)
+      order = order_hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}.join(",")
     end
     rows = connection.execute <<-SQL
       SELECT * FROM #{table}
