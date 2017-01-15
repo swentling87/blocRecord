@@ -1,3 +1,4 @@
+require 'pg'
 require 'sqlite3'
 require 'bloc_record/schema'
 
@@ -45,14 +46,23 @@ module Persistence
       attrs.delete "id"
       vals = attributes.map { |key| BlocRecord::Utility.sql_strings(attrs[key]) }
 
-      connection.execute <<-SQL
-        INSERT INTO #{table} (#{attributes.join ","})
-        VALUES (#{vals.join ","})
-      SQL
-
-      data = Hash[attributes.zip attrs.values]
-      data["id"] = connection.execute("SELECT last_insert_rowid();")[0][0]
-      new(data)
+      if BlocRecord.database_type == 'pg'
+        connection.exec <<-SQL
+          INSERT INTO #{table} (#{attributes[1]})
+          VALUES (#{vals[1]})
+        SQL
+        data = Hash[attributes.zip attrs.values]
+        data["id"] = connection.exec("SELECT last_insert_rowid();")[0][0]
+        new(data)
+      else
+        connection.execute <<-SQL
+          INSERT INTO #{table} (#{attributes.join ","})
+          VALUES (#{vals.join ","})
+        SQL
+        data = Hash[attributes.zip attrs.values]
+        data["id"] = connection.execute("SELECT last_insert_rowid();")[0][0]
+        new(data)
+      end
     end
 
     def update(ids, updates)

@@ -1,3 +1,4 @@
+require 'pg'
 require 'sqlite3'
 
 module Selection
@@ -87,11 +88,19 @@ module Selection
   end
 
   def first
-    row = connection.get_first_row <<-SQL
-      SELECT #{columns.join ","} FROM #{table}
-      ORDER BY id
-      ASC LIMIT 1;
-    SQL
+    if BlocRecord.database_type == 'pg'
+      row = connection.exec <<-SQL
+        SELECT #{columns.join ","} FROM #{table}
+        ORDER BY id
+        ASC LIMIT 1;
+      SQL
+    else
+      row = connection.get_first_row <<-SQL
+        SELECT #{columns.join ","} FROM #{table}
+        ORDER BY id
+        ASC LIMIT 1;
+      SQL
+    end
 
     init_object_from_row(row)
   end
@@ -139,22 +148,26 @@ module Selection
     case args.first
     when String
       if args.count > 1
-        order = args.join(",")
+        order_clause = args.join(",")
+      else
+        order_clause = args.first.to_s
       end
     when Hash
-      order_hash = BlocRecord::Utility.convert_keys(args)
-      order = order_hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}.join(",")
+      order_hash = BlocRecord::Utility.convert_keys(args[0])
+      order_clause = order_hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}.join(",")
+    when Symbol
+      order_clause = args.first.to_s
     end
     rows = connection.execute <<-SQL
       SELECT * FROM #{table}
-      ORDER BY #{order};
+      ORDER BY #{order_clause};
     SQL
     rows_to_array(rows)
   end
 
   def join(*args)
     if args.count > 1
-      joins = args.map { |arg| "INNER JOIN #{arg} ON #{arg}.#{table}_id = #{table}.id"}.join(" ")
+      joins = args.map { |arg| "INNER JOIN #{arg.to_s} ON #{arg.to_s}.#{table}_id = #{table}.id"}.join(" ")
       rows = connection.execute <<-SQL
         SELECT * FROM #{table} #{joins}
       SQL
